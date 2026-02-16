@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////
+// ENTITY NAME: Question
+// ENTITY DESCRIPTION:
+// Stores knowledge base questions, answers,
+// and their vector embeddings for semantic search
+//////////////////////////////////////////////////////
+model Question {
+  id        String   @id @default(uuid()) @map("QuestionId")
+  question  String   @map("Question")
+  answer    String   @map("Answer")
+  embedding String   @map("Embedding")
+  createdAt DateTime @default(now()) @map("CreatedAt")
+  updatedAt DateTime @updatedAt @map("UpdatedAt")
+
+  @@index([question])
+  @@map("Questions")
+}
+
+//////////////////////////////////////////////////////
+// ENTITY NAME: ChatHistory
+// ENTITY DESCRIPTION:
+// Stores chat interactions along with their
+// response source (cache or openai)
+//////////////////////////////////////////////////////
+model ChatHistory {
+  id        String       @id @default(uuid()) @map("ChatHistoryId")
+  question  String       @map("Question")
+  answer    String       @map("Answer")
+  source    String       @map("Source")
+  createdAt DateTime     @default(now()) @map("CreatedAt")
+  
+  @@map("ChatHistories")
+}
+
+//////////////////////////////////////////////////////
+// ENTITY NAME: AdminUser
+// ENTITY DESCRIPTION:
+// Stores administrator account details and
+// authentication-related information
+//////////////////////////////////////////////////////
+model AdminUser {
+  adminUserId            String    @id @default(uuid()) @map("AdminUserId")
+  firstName              String    @map("FirstName")
+  lastName               String    @map("LastName")
+  createdAt              DateTime  @default(now()) @map("CreatedAt")
+  password               String    @map("Password") // hashed
+  userEmailAddress       String    @map("UserEmailAddress") @unique
+  userName               String    @map("UserName")
+  userAccountStatus      String    @map("UserAccountStatus")
+  userLastLoginTimeStamp DateTime? @map("UserLastLoginTimeStamp")
+  isUserLoggedInFlag     Boolean   @map("IsUserLoggedInFlag")
+
+  @@map("AdminUsers")
+}
+
+//////////////////////////////////////////////////////
+// ENTITY NAME: Log
+// ENTITY DESCRIPTION:
+// Stores system and user activity logs for
+// auditing and monitoring purposes
+//////////////////////////////////////////////////////
+model Log {
+  logId       String   @id @default(uuid()) @map("LogId")
+  description String   @map("Description")
+  ipAddress   String   @map("IPAddress")
+  timestamp   DateTime @default(now()) @map("Timestamp")
+  deviceInfo  String   @map("DeviceInfo")
+  actionType  String   @map("ActionType")
+
+  @@map("Logs")
+}
+
+//////////////////////////////////////////////////////
+// ENTITY NAME: StudentFeedback
+//////////////////////////////////////////////////////
+model StudentFeedback {
+  id           String   @id @default(uuid()) @map("StudentFeedbackId")
+  studentName  String   @map("StudentName")
+  studentID    String?  @map("StudentID") // Optional
+  rating       Int      @map("Rating") // 1-5
+  feedbackText String   @map("FeedbackText")
+  submittedAt  DateTime @default(now()) @map("SubmittedAt")
+
+  @@index([studentID])
+  @@index([rating])
+  @@index([submittedAt])
+  @@map("StudentFeedbacks")
+}
