@@ -1,5 +1,4 @@
-// FILE PATH: src/repositories/feedback.repository.ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, StudentFeedback } from "@prisma/client";
 import { IFeedbackRepository } from "../repositories/interfaces/IFeedbackRepository";
 import {
   CreateFeedbackDto,
@@ -9,6 +8,14 @@ import {
   FeedbackStatsDto,
 } from "../dtos/feedback.dto";
 import { StudentFeedbackEntity } from "../entities/feedback.entity";
+
+// Type for the groupBy result (rating distribution)
+type RatingGroup = {
+  rating: number;
+  _count: {
+    rating: number;
+  };
+};
 
 export class FeedbackRepository implements IFeedbackRepository {
   private prisma: PrismaClient;
@@ -80,7 +87,7 @@ export class FeedbackRepository implements IFeedbackRepository {
       take: limitNum,
     });
 
-    const data = feedbackList.map((feedback) => {
+    const data = feedbackList.map((feedback: StudentFeedback) => {
       const responseDto =
         StudentFeedbackEntity.fromDatabaseModel(feedback).toResponseDto();
       return {
@@ -154,7 +161,9 @@ export class FeedbackRepository implements IFeedbackRepository {
     // Format rating distribution
     const distribution = Array.from({ length: 5 }, (_, i) => {
       const rating = i + 1;
-      const found = ratingDistribution.find((r) => r.rating === rating);
+      const found = (ratingDistribution as RatingGroup[]).find(
+        (r: RatingGroup) => r.rating === rating,
+      );
       const count = found ? found._count.rating : 0;
       const percentage =
         totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : "0.0";
