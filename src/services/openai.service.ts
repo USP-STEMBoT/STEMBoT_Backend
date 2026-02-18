@@ -1,101 +1,23 @@
 // FILE PATH: src/services/openai.service.ts
-// FILE DESCRIPTION: Implementation of OpenAI service and call to OpenAI API
-
-// import { openai, EMBEDDING_MODEL, CHAT_MODEL } from "../config/openai.config";
-// import { IOpenAIService } from "./interfaces/IOpenAIService";
-
-// export class OpenAIService implements IOpenAIService {
-//   /**
-//    * Generates a semantic embedding for the given text
-//    *
-//    * Used for similarity search, clustering, and semantic
-//    * comparison of questions.
-//    *
-//    * @param text - Input text to generate an embedding for
-//    * @returns A numerical vector representing the text
-//    */
-//   async generateEmbedding(text: string): Promise<number[]> {
-//     try {
-//       const response = await openai.embeddings.create({
-//         model: EMBEDDING_MODEL,
-//         input: text,
-//       });
-
-//       // Return the first embedding vector from the response
-//       return response.data[0].embedding;
-//     } catch (error) {
-//       // Log the original error for debugging and observability
-//       console.error("Error generating embedding:", error);
-
-//       // Throw a generic error to avoid leaking provider-specific details
-//       throw new Error("Failed to generate embedding");
-//     }
-//   }
-
-//   /**
-//    * Generates a natural language answer to a question
-//    *
-//    * Optionally augments the response with additional context
-//    * (e.g., retrieved documents in a RAG pipeline).
-//    *
-//    * @param question - The question to be answered
-//    * @param context - Optional contextual information
-//    * @returns The generated answer as a string
-//    */
-//   async generateAnswer(question: string, context?: string): Promise<string> {
-//     try {
-//       // Build the system prompt based on whether context is provided
-//       const systemMessage = context
-//         ? `You are a helpful assistant. Use the following context to answer questions: ${context}`
-//         : "You are a helpful assistant.";
-
-//       const response = await openai.chat.completions.create({
-//         model: CHAT_MODEL,
-//         messages: [
-//           { role: "system", content: systemMessage },
-//           { role: "user", content: question },
-//         ],
-//         temperature: 0.7,
-//         max_tokens: 500,
-//       });
-
-//       // Safely return the generated message content
-//       return (
-//         response.choices[0].message.content ||
-//         "I apologize, but I could not generate a response."
-//       );
-//     } catch (error) {
-//       // Log provider errors for troubleshooting
-//       console.error("Error generating answer:", error);
-
-//       // Throw a generic error for upstream handling
-//       throw new Error("Failed to generate answer from OpenAI");
-//     }
-//   }
-// }
-// FILE PATH: src/services/openai.service.ts
-// FILE DESCRIPTION: Implementation of OpenAI service and call to OpenAI API
+// FILE DESCRIPTION: OpenAI service using Responses API with Prompt ID and safe TypeScript handling
 
 import {
   openai,
   EMBEDDING_MODEL,
   CHAT_MODEL,
   CONFIDENCE_THRESHOLDS,
+  STEMP_PROMPT_ID,
+  STEMP_PROMP_VERSION,
 } from "../config/openai.config";
 import { IOpenAIService } from "./interfaces/IOpenAIService";
 import { QuestionEntity } from "../entities/question.entity";
 import { findMostSimilar, SimilarityResult } from "../utils/vector.util";
 
 export class OpenAIService implements IOpenAIService {
-  /**
-   * Generates a semantic embedding for the given text
-   *
-   * Used for similarity search, clustering, and semantic
-   * comparison of questions.
-   *
-   * @param text - Input text to generate an embedding for
-   * @returns A numerical vector representing the text
-   */
+  private PROMPT_ID = STEMP_PROMPT_ID;
+  private PROMPT_VERSION = STEMP_PROMP_VERSION;
+
+  /** Generate semantic embedding for text */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
       const response = await openai.embeddings.create({
@@ -103,91 +25,67 @@ export class OpenAIService implements IOpenAIService {
         input: text,
       });
 
-      // Return the first embedding vector from the response
       return response.data[0].embedding;
     } catch (error) {
-      // Log the original error for debugging and observability
       console.error("Error generating embedding:", error);
-
-      // Throw a generic error to avoid leaking provider-specific details
       throw new Error("Failed to generate embedding");
     }
   }
 
-  /**
-   * Generates a natural language answer to a question
-   *
-   * Optionally augments the response with additional context
-   * (e.g., retrieved documents in a RAG pipeline).
-   *
-   * @param question - The question to be answered
-   * @param context - Optional contextual information
-   * @returns The generated answer as a string
-   */
+  /** Generate a response using the stored Prompt */
   async generateAnswer(question: string, context?: string): Promise<string> {
     try {
-      // Build the system prompt based on whether context is provided
-      const systemMessage = context
-        ? `You are a helpful assistant. Use the following context to answer questions: ${context}`
-        : "You are a helpful assistant.";
+      const inputText = context
+        ? `Use the following context to answer the question:\n${context}\n\nQuestion: ${question}`
+        : question;
 
-      const response = await openai.chat.completions.create({
+      const response = await openai.responses.create({
         model: CHAT_MODEL,
-        messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: question },
-        ],
+        prompt: {
+          id: this.PROMPT_ID,
+          version: this.PROMPT_VERSION,
+        },
+        input: inputText,
         temperature: 0.7,
-        max_tokens: 500,
+        max_output_tokens: 500,
       });
 
-      // Safely return the generated message content
-      return (
-        response.choices[0].message.content ||
-        "Sorry - I can't answer this one yet. This question isn't avaliable in the STEM-BoT approved datasetor supported categories, so I'm unable to provide an official answer at this time. For accurate guidance, please contact the STEMP school directly: stempopenai@gmail.com"
-      );
-    } catch (error) {
-      // Log provider errors for troubleshooting
-      console.error("Error generating answer:", error);
+      // --- SAFELY EXTRACT TEXT OUTPUT ---
+      const textOutput = response.output
+        .filter((item) => "content" in item) // only items with content
+        .map((item: any) =>
+          item.content
+            .filter((c: any) => c.type === "output_text")
+            .map((c: any) => c.text)
+            .join("\n"),
+        )
+        .join("\n");
 
-      // Throw a generic error for upstream handling
+      return textOutput || "Sorry, I can't answer this right now.";
+    } catch (error) {
+      console.error("Error generating answer:", error);
       throw new Error("Failed to generate answer from OpenAI");
     }
   }
 
-  /**
-   * Process user query with intelligent matching and response generation
-   *
-   * This method:
-   * 1. Generates embedding for user query
-   * 2. Finds most similar question in database
-   * 3. Returns appropriate response based on confidence level
-   *
-   * @param userQuery - The user's question
-   * @param questionDatabase - Array of questions with embeddings
-   * @returns A contextual response based on similarity match
-   */
+  /** Process user query with similarity matching */
   async processQuery(
     userQuery: string,
     questionDatabase: QuestionEntity[],
   ): Promise<string> {
     try {
-      // Generate embedding for the user's query
       const queryEmbedding = await this.generateEmbedding(userQuery);
 
-      // **ADD THIS LOGGING**
       console.log("=== DEBUG INFO ===");
       console.log("User Query:", userQuery);
       console.log("Database size:", questionDatabase.length);
 
-      // Find the most similar question
       const result = findMostSimilar(
         queryEmbedding,
         questionDatabase,
         CONFIDENCE_THRESHOLDS.MIN,
       );
 
-      // **ADD MORE LOGGING**
       if (result) {
         console.log("Match found!");
         console.log("Similarity score:", result.similarity);
@@ -198,7 +96,6 @@ export class OpenAIService implements IOpenAIService {
       }
       console.log("==================");
 
-      // Handle response based on match confidence
       if (!result) {
         return await this.handleNoMatch(userQuery);
       }
@@ -210,49 +107,15 @@ export class OpenAIService implements IOpenAIService {
     }
   }
 
-  /**
-   * Handle queries with no similar match found
-   *
-   * @param userQuery - The original user query
-   * @returns A generated response or fallback message
-   */
+  /** Handle queries with no similar match */
   private async handleNoMatch(userQuery: string): Promise<string> {
-    try {
-      // Generate dynamic response using GPT
-      const response = await openai.chat.completions.create({
-        model: CHAT_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful assistant. The user's question doesn't match our knowledge base. Provide a helpful response or politely ask for clarification.",
-          },
-          {
-            role: "user",
-            content: userQuery,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 300,
-      });
-
-      return (
-        response.choices[0].message.content ||
-        "I'm not sure how to help with that. Could you please rephrase your question?"
-      );
-    } catch (error) {
-      console.error("Error handling no match:", error);
-      return "I'm having trouble understanding your question. Could you please rephrase it?";
-    }
+    return this.generateAnswer(
+      userQuery,
+      "The question does not match our knowledge base.",
+    );
   }
 
-  /**
-   * Handle matched queries based on confidence level
-   *
-   * @param userQuery - The original user query
-   * @param result - The similarity match result
-   * @returns Appropriate response based on confidence
-   */
+  /** Handle queries with a similarity match */
   private async handleMatchedQuery(
     userQuery: string,
     result: SimilarityResult,
@@ -261,15 +124,12 @@ export class OpenAIService implements IOpenAIService {
 
     switch (confidenceLevel) {
       case "high":
-        // High confidence - return stored answer directly
         return question.answer;
 
       case "medium":
-        // Medium confidence - return answer with slight disclaimer
         return `${question.answer}\n\n(Confidence: ${Math.round(similarity * 100)}%)`;
 
       case "low":
-        // Low confidence - use GPT to adapt the answer to user's specific query
         return await this.generateAdaptedAnswer(userQuery, result);
 
       default:
@@ -277,53 +137,23 @@ export class OpenAIService implements IOpenAIService {
     }
   }
 
-  /**
-   * Generate an adapted answer using GPT with context from similar question
-   *
-   * @param userQuery - The original user query
-   * @param result - The similarity match result
-   * @returns An adapted answer specific to the user's query
-   */
+  /** Generate an adapted answer using the stored Prompt with context */
   private async generateAdaptedAnswer(
     userQuery: string,
     result: SimilarityResult,
   ): Promise<string> {
     try {
       const { question } = result;
+      const context = `A similar question in the database is: "${question.question}" with answer: "${question.answer}"`;
 
-      const response = await openai.chat.completions.create({
-        model: CHAT_MODEL,
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful assistant. A similar question in our database is: "${question.question}" with answer: "${question.answer}". Use this as context to answer the user's question, adapting it to their specific query if needed.`,
-          },
-          {
-            role: "user",
-            content: userQuery,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      });
-
-      return (
-        response.choices[0].message.content || question.answer // Fallback to stored answer
-      );
+      return await this.generateAnswer(userQuery, context);
     } catch (error) {
       console.error("Error generating adapted answer:", error);
-      // Fallback to the stored answer if GPT fails
-      return result.question.answer;
+      return result.question.answer; // fallback
     }
   }
 
-  /**
-   * Batch process multiple queries efficiently
-   *
-   * @param queries - Array of user queries
-   * @param questionDatabase - Array of questions with embeddings
-   * @returns Array of responses
-   */
+  /** Batch process multiple queries */
   async processQueries(
     queries: string[],
     questionDatabase: QuestionEntity[],

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, ChatHistory } from "@prisma/client";
 import { IChatHistoryRepository } from "./interfaces/IChatHistoryRepository";
 import { ChatHistoryEntity } from "../entities/chat-history.entity";
 
@@ -22,7 +22,7 @@ export class ChatHistoryRepository implements IChatHistoryRepository {
 
   async findAll(): Promise<ChatHistoryEntity[]> {
     const results = await this.prisma.chatHistory.findMany();
-    return results.map((r) => new ChatHistoryEntity(r));
+    return results.map((r: ChatHistory) => new ChatHistoryEntity(r));
   }
 
   async findRecent(limit: number): Promise<ChatHistoryEntity[]> {
@@ -30,7 +30,7 @@ export class ChatHistoryRepository implements IChatHistoryRepository {
       take: limit,
       orderBy: { createdAt: "desc" },
     });
-    return results.map((r) => new ChatHistoryEntity(r));
+    return results.map((r: ChatHistory) => new ChatHistoryEntity(r));
   }
 
   async findByDateRange(
@@ -59,6 +59,6 @@ export class ChatHistoryRepository implements IChatHistoryRepository {
       orderBy: { createdAt: "desc" },
     });
 
-    return results.map((r) => new ChatHistoryEntity(r));
+    return results.map((r: ChatHistory) => new ChatHistoryEntity(r));
   }
 }
