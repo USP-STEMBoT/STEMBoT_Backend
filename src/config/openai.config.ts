@@ -16,7 +16,7 @@ export const STEMP_PROMP_VERSION = process.env.STEMP_PROMPT_VERSION;
 
 export const EMBEDDING_MODEL = "text-embedding-3-small";
 export const CHAT_MODEL = "gpt-4.1-mini";
-export const SIMILARITY_THRESHOLD = 0.75;
+export const SIMILARITY_THRESHOLD = 0.95;
 // Confidence thresholds for response handling
 export const CONFIDENCE_THRESHOLDS = {
   HIGH: 0.9, // Return answer directly
