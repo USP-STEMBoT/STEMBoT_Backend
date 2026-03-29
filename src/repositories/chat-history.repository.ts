@@ -61,4 +61,14 @@ export class ChatHistoryRepository implements IChatHistoryRepository {
 
     return results.map((r: ChatHistory) => new ChatHistoryEntity(r));
   }
+
+  async deleteManyByIds(ids: string[]): Promise<number> {
+    if (!ids.length) return 0;
+    const result = await this.prisma.chatHistory.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+    return result.count;
+  }
 }

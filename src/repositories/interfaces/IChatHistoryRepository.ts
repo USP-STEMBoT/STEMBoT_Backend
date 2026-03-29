@@ -12,4 +12,5 @@ export interface IChatHistoryRepository {
     startDate?: Date,
     endDate?: Date,
   ): Promise<ChatHistoryEntity[]>;
+  deleteManyByIds(ids: string[]): Promise<number>;
 }

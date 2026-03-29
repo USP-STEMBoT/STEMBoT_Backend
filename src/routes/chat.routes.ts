@@ -11,4 +11,15 @@ export async function chatRoutes(
 
   // Main chat endpoint
   fastify.post("/api/chat", chatController.chat.bind(chatController));
+
+  // New batch delete endpoint
+  fastify.post(
+    "/api/chat/delete-batch",
+    {
+      preValidation: (request, reply, done) => {
+        done();
+      },
+    },
+    chatController.deleteBatch.bind(chatController),
+  );
 }

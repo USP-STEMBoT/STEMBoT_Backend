@@ -34,4 +34,16 @@ export class ChatService implements IChatService {
 
     return new ChatResponseDto(answer, "openai");
   }
+
+  async deleteChatHistoriesByIds(ids: string[]): Promise<number> {
+    // Optional: Validate that all IDs are UUIDs
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const invalidIds = ids.filter((id) => !uuidRegex.test(id));
+    if (invalidIds.length) {
+      throw new Error(`Invalid UUID format for IDs: ${invalidIds.join(", ")}`);
+    }
+
+    return this.chatHistoryRepo.deleteManyByIds(ids);
+  }
 }

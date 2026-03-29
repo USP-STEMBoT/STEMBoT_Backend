@@ -42,6 +42,7 @@ import { feedbackRoutes } from "./routes/feedback.routes";
 
 // Plugins
 import jwtPlugin from "./plugins/jwt.plugin";
+import fastifyMultipart from "@fastify/multipart";
 
 dotenv.config();
 
@@ -83,6 +84,13 @@ async function startServer() {
 
     // Register JWT plugin (authentication decorator)
     await fastify.register(jwtPlugin);
+
+    try {
+      await fastify.register(fastifyMultipart);
+      console.log("✅ fastify-multipart registered successfully");
+    } catch (err) {
+      console.error("❌ Failed to register fastify-multipart:", err);
+    }
 
     // Initialize repositories
     const questionRepo = new QuestionRepository(prisma);
