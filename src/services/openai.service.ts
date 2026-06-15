@@ -39,15 +39,26 @@ export class OpenAIService implements IOpenAIService {
         ? `Use the following context to answer the question:\n${context}\n\nQuestion: ${question}`
         : question;
 
+      // const response = await openai.responses.create({
+      //   model: CHAT_MODEL,
+      //   prompt: {
+      //     id: this.PROMPT_ID,
+      //     version: this.PROMPT_VERSION,
+      //   },
+      //   input: inputText,
+      //   temperature: 0.7,
+      //   max_output_tokens: 500,
+      // });
+
       const response = await openai.responses.create({
         model: CHAT_MODEL,
         prompt: {
           id: this.PROMPT_ID,
           version: this.PROMPT_VERSION,
+          variables: {
+            user_question: inputText,
+          },
         },
-        input: inputText,
-        temperature: 0.7,
-        max_output_tokens: 500,
       });
 
       // --- SAFELY EXTRACT TEXT OUTPUT ---

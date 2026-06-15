@@ -15,7 +15,7 @@ export const STEMP_PROMPT_ID = process.env.STEMP_PROMPT_ID!;
 export const STEMP_PROMP_VERSION = process.env.STEMP_PROMPT_VERSION;
 
 export const EMBEDDING_MODEL = "text-embedding-3-small";
-export const CHAT_MODEL = "gpt-4.1-mini";
+export const CHAT_MODEL = "gpt-5.4";
 export const SIMILARITY_THRESHOLD = 0.95;
 // Confidence thresholds for response handling
 export const CONFIDENCE_THRESHOLDS = {
